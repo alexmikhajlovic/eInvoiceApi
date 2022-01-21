@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 
@@ -20,9 +21,20 @@ namespace eInvoiceApi.Controllers
             if (xmlFilePath.Contains("\"")) xmlFilePath = xmlFilePath.Replace("\"", ""); // Useful when user copy file path as a quoted string
 
             RequestResult requestResult = new();
-            requestResult.Status = true;
-            requestResult.Message = $"Everything is ok!";
             requestResult.SourceFilePath = xmlFilePath;
+
+            string fileExtension = xmlFilePath.Substring(xmlFilePath.LastIndexOf(".") + 1).ToUpper();
+            if (fileExtension == "XML")
+            {
+                requestResult.Status = true;
+                requestResult.Message = $"This is a valid *.XML file!";
+            }
+            else
+            {
+                requestResult.Status = false;
+                requestResult.Message = $"Please upload a valid *.XML file.";
+            }
+
             return requestResult;
         }
 
