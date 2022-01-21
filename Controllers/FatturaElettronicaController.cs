@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.IO.Compression;
+using System.Xml;
 using System.Xml.Xsl;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -27,22 +29,57 @@ namespace eInvoiceApi.Controllers
 
             string fileName = Path.GetFileName(xmlFilePath);
             string fileNameWithoutExtension = fileName.Substring(0, fileName.LastIndexOf("."));
-            string fileExtension = xmlFilePath.Substring(xmlFilePath.LastIndexOf(".") + 1).ToUpper();
+            string fileExtension = xmlFilePath[(xmlFilePath.LastIndexOf(".") + 1)..].ToUpper();
 
             if (fileExtension == "XML")
             {
                 string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-
                 var savingPath = $"{desktopPath}\\eInvoiceApi-generated";
+
                 if (!Directory.Exists(savingPath))
                 {
                     Directory.CreateDirectory(savingPath);
                 }
 
                 ConvertFile(xmlFilePath, fileNameWithoutExtension, savingPath);
-
                 requestResult.Status = true;
-                requestResult.Message = $"File converted in HTML & PDF!";
+                requestResult.Message = $"File converted in HTML & PDF! You can find these files in ({savingPath}\\{fileNameWithoutExtension})";
+
+
+                XmlDocument XmlDoc = new();
+                XmlDoc.Load(xmlFilePath);
+                if (XmlDoc.SelectSingleNode("//Allegati") != null)
+                {
+                    string targetFolderforAttachment = Path.GetDirectoryName(xmlFilePath);
+                    string xPath = string.Format(_appConfiguration["FatturaElettronicaITA:XMLAttachmentsPath"], _appConfiguration["FatturaElettronicaITA:attachmentsTagName"]);
+
+                    XmlNodeList elements = XmlDoc.SelectNodes(xPath);
+                    foreach (XmlElement element in elements)
+                    {
+                        string attachment = element.SelectSingleNode("Attachment").InnerText;
+                        string attachmentName = element.SelectSingleNode("NomeAttachment").InnerText;
+                        
+                        if (attachment != "")
+                        {
+                            ManageAttachment(targetFolderforAttachment, attachmentName, attachment);
+                        }
+                        else
+                        {
+                            requestResult.Status = false;
+                            requestResult.Message += $" Attachment content: ({attachmentName}) from: ({xmlFilePath}) is empty.";
+                            return requestResult;
+                        }
+                    }
+
+                    requestResult.Status = true;
+                    requestResult.Message += $" Attachments extracted successfully!";
+                }
+                else
+                {
+                    requestResult.Status = false;
+                    requestResult.Message += $" <Allegati> XML_Node from file: {xmlFilePath} does not exist. No attachments were found...";
+                    return requestResult;
+                }
             }
             else
             {
@@ -75,6 +112,46 @@ namespace eInvoiceApi.Controllers
             var document = HtmlToPdfconverter.ConvertUrl(htmlFilePath);
             document.Save(pdfFilePath);
             document.Close();
+        }
+
+        public static void ManageAttachment(string path, string attachmentName, string attachment)
+        {
+            attachmentName = attachmentName.Replace("/", "_");
+            string AttachmentPath = string.Format(_appConfiguration["FatturaElettronicaITA:attachmentsFolder"], path);
+
+            if (!Directory.Exists(AttachmentPath))
+            {
+                Directory.CreateDirectory(AttachmentPath);
+            }
+
+            var decodedFileBytes = Convert.FromBase64String(attachment);
+
+            string TheExt = attachmentName[(attachmentName.LastIndexOf(".") + 1)..].ToUpper();
+            if (TheExt == "ZIP")
+            {
+                System.IO.File.WriteAllBytes(path + @"\" + attachmentName, decodedFileBytes);
+
+                if (Directory.Exists(path))
+                {
+                    Directory.Delete(path, true);
+                }
+
+                Decompress(path + @"\" + attachmentName, path);
+            }
+            else
+            {
+                System.IO.File.WriteAllBytes(AttachmentPath + attachmentName, decodedFileBytes);
+            }
+        }
+
+        public static void Decompress(string directoryPath, string targetPath)
+        {
+            FileInfo fileToDecompress = new(directoryPath);
+
+            using FileStream originalFileStream = fileToDecompress.OpenRead();
+            string currentFileName = fileToDecompress.FullName;
+
+            ZipFile.ExtractToDirectory(currentFileName, targetPath);
         }
 
         public class RequestResult
