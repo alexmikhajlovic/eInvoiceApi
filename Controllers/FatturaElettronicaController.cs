@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Xml.Xsl;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 
@@ -23,11 +24,24 @@ namespace eInvoiceApi.Controllers
             RequestResult requestResult = new();
             requestResult.SourceFilePath = xmlFilePath;
 
+            string fileName = Path.GetFileName(xmlFilePath);
+            string fileNameWithoutExtension = fileName.Substring(0, fileName.LastIndexOf("."));
             string fileExtension = xmlFilePath.Substring(xmlFilePath.LastIndexOf(".") + 1).ToUpper();
+
             if (fileExtension == "XML")
             {
+                string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+
+                var savingPath = $"{desktopPath}\\eInvoiceApi-generated";
+                if (!Directory.Exists(savingPath))
+                {
+                    Directory.CreateDirectory(savingPath);
+                }
+
+                ConvertFile(xmlFilePath, fileNameWithoutExtension, savingPath);
+
                 requestResult.Status = true;
-                requestResult.Message = $"This is a valid *.XML file!";
+                requestResult.Message = $"File converted in HTML!";
             }
             else
             {
@@ -36,6 +50,21 @@ namespace eInvoiceApi.Controllers
             }
 
             return requestResult;
+        }
+
+        public static void ConvertFile(string path, string name, string locationSavingPath)
+        {
+            string specificSavingDirectory = $"{locationSavingPath}\\{name}";
+            if (!Directory.Exists(specificSavingDirectory))
+            {
+                Directory.CreateDirectory(specificSavingDirectory);
+            }
+
+            string htmlFilePath = $"{specificSavingDirectory}\\{name}.html";
+
+            XslCompiledTransform XslCT = new();
+            XslCT.Load(@"C:\coding\c#\eInvoiceApi\Utilities\ItalWorkStyleSheet.xsl");
+            XslCT.Transform(path, htmlFilePath);
         }
 
         public class RequestResult
