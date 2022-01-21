@@ -26,3 +26,7 @@ C:\coding\c#\eInvoiceApi\obj\Debug\net5.0\eInvoiceApi.dll
 C:\coding\c#\eInvoiceApi\obj\Debug\net5.0\ref\eInvoiceApi.dll
 C:\coding\c#\eInvoiceApi\obj\Debug\net5.0\eInvoiceApi.pdb
 C:\coding\c#\eInvoiceApi\obj\Debug\net5.0\eInvoiceApi.genruntimeconfig.cache
+C:\coding\c#\eInvoiceApi\bin\Debug\net5.0\Select.Html.dep
+C:\coding\c#\eInvoiceApi\bin\Debug\net5.0\Microsoft.Bcl.AsyncInterfaces.dll
+C:\coding\c#\eInvoiceApi\bin\Debug\net5.0\Newtonsoft.Json.dll
+C:\coding\c#\eInvoiceApi\bin\Debug\net5.0\Select.HtmlToPdf.dll

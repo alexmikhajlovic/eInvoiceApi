@@ -3,6 +3,7 @@ using System.IO;
 using System.Xml.Xsl;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using SelectPdf;
 
 namespace eInvoiceApi.Controllers
 {
@@ -41,7 +42,7 @@ namespace eInvoiceApi.Controllers
                 ConvertFile(xmlFilePath, fileNameWithoutExtension, savingPath);
 
                 requestResult.Status = true;
-                requestResult.Message = $"File converted in HTML!";
+                requestResult.Message = $"File converted in HTML & PDF!";
             }
             else
             {
@@ -59,12 +60,21 @@ namespace eInvoiceApi.Controllers
             {
                 Directory.CreateDirectory(specificSavingDirectory);
             }
-
             string htmlFilePath = $"{specificSavingDirectory}\\{name}.html";
+            string pdfFilePath = $"{specificSavingDirectory}\\{name}.pdf";
 
             XslCompiledTransform XslCT = new();
             XslCT.Load(@"C:\coding\c#\eInvoiceApi\Utilities\ItalWorkStyleSheet.xsl");
             XslCT.Transform(path, htmlFilePath);
+
+
+            HtmlToPdf HtmlToPdfconverter = new();
+            GlobalProperties.HtmlEngineFullPath = Path.Combine(Directory.GetCurrentDirectory(), "Utilities/Select.Html.dep");
+            HtmlToPdfconverter.Options.MaxPageLoadTime = 120; // Useful to avoid timing exception
+
+            var document = HtmlToPdfconverter.ConvertUrl(htmlFilePath);
+            document.Save(pdfFilePath);
+            document.Close();
         }
 
         public class RequestResult
